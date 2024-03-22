@@ -1,0 +1,248 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_REG_LENGTH 10
+#define MAX_MAKE_MODEL_LENGTH 50
+#define MAX_COLOR_LENGTH 20
+
+struct Car {
+    char reg_number[MAX_REG_LENGTH];
+    char make_model[MAX_MAKE_MODEL_LENGTH];
+    char color[MAX_COLOR_LENGTH];
+    int num_owners;
+    int reserved;
+    float reserve_amount;
+    struct Car* next;
+};
+
+struct Car* createCar(char reg[], char make_model[], char color[], int owners, int res, float reserve_amount) {
+    struct Car* car = (struct Car*)malloc(sizeof(struct Car));
+    if (car == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(car->reg_number, reg);
+    strcpy(car->make_model, model);
+    strcpy(car->color, clr);
+    car->num_owners = owners;
+    car->reserved = res;
+    car->reserve_amount = reserve_amount;
+    car->next = NULL;
+    return car;
+}
+void addCar(struct Car** showroom, struct Car* car) {
+    if (*showroom == NULL)
+        *showroom = car;
+    else {
+        struct Car* temp = *showroom;
+        while (temp->next != NULL)
+            temp = temp->next;
+        temp->next = car;
+    }
+}
+
+void sellCar(struct Car** showroom, char reg[]) {
+    struct Car** pp = showroom;
+    while (*pp != NULL && strcmp((*pp)->reg_number, reg) != 0)
+        pp = &((*pp)->next);
+    if (*pp == NULL) {
+        printf("Car with registration number %s not found.\n", reg);
+        return;
+    }
+    if (!(*pp)->reserved) {
+        printf("Car with registration number %s is not reserved and cannot be sold.\n", reg);
+        return;
+    }
+    struct Car* temp = *pp;
+    *pp = temp->next;c
+    free(temp);
+    printf("Car with registration number %s sold successfully.\n", reg);
+}
+
+void reserveUnreserveCar(struct Car** showroom, char reg[], float reserve_amount, int reserve) {
+    if (reserve_amount < 500 || reserve_amount > 1500) {
+        printf("Deposit amount must be between 500 and 1500.\n");
+        return;
+    }
+    struct Car** pp = showroom;
+    while (*pp != NULL && strcmp((*pp)->reg_number, reg) != 0)
+        pp = &((*pp)->next);
+    if (*pp == NULL) {
+        printf("Car with registration number %s not found.\n", reg);
+        return;
+    }
+    if (reserve) {
+        if ((*pp)->reserved) {
+            printf("Car with registration number %s is already reserved.\n", reg);
+            return;
+        }
+        (*pp)->reserved = 1;
+        (*pp)->reserve_amount = reserve_amount;
+        printf("Car with registration number %s reserved successfully.\n", reg);
+    } else {
+        if (!(*pp)->reserved) {
+            printf("Car with registration number %s is not reserved.\n", reg);
+            return;
+        }
+        (*pp)->reserved = 0;
+        (*pp)->reserve_amount = 0;
+        printf("Car with registration number %s unreserved successfully.\n", reg);
+    }
+}
+
+// Function to view all cars or cars based on specific conditions
+void viewCars(struct Car* showroom, int condition, char* value) {
+    if (showroom == NULL) {
+        printf("Showroom is empty.\n");
+        return;
+    }
+    printf("Cars in the showroom:\n");
+    struct Car* temp = showroom;
+    while (temp != NULL) {
+        int conditionMet = 0;
+        switch (condition) {
+            case 1: // Non-reserved cars
+                if (!temp->reserved)
+                    conditionMet = 1;
+                break;
+            case 2: // Cars of a certain make
+                if (strcmp(temp->make_model, value) == 0)
+                    conditionMet = 1;
+                break;
+            case 3: // Cars with a specific color
+                if (strcmp(temp->color, value) == 0)
+                    conditionMet = 1;
+                break;
+            default:
+                conditionMet = 1; // View all cars
+        }
+        if (conditionMet) {
+            printf("Registration: %s, Make and Model: %s, Color: %s, Owners: %d, Reserved: %s, Reserve Amount: %.2f\n", temp->reg_number, temp->make_model, temp->color, temp->num_owners, (temp->reserved ? "Yes" : "No"), temp->reserve_amount);
+        }
+        temp = temp->next;
+    }
+}
+void viewSpecificCar(struct Car* showroom, char reg[]) {
+    struct Car* car = showroom;
+    while (car != NULL) {
+        if (strcmp(car->reg_number, reg) == 0) {
+            printf("Registration: %s, Make and Model: %s, Color: %s, Owners: %d, Reserved: %s, Reserve Amount: %.2f\n", car->reg_number, car->make_model, car->color, car->num_owners, (car->reserved ? "Yes" : "No"), car->reserve_amount);
+            return;
+        }
+        car = car->next;
+    }
+    printf("Car with registration number %s not found.\n", reg);
+}
+
+void readFromFile(struct Car** showroom) {
+    FILE *file = fopen("car.dat", "rb");
+    if (file == NULL) {
+        printf("No existing list of cars found. You need to input cars.\n");
+        return;
+    }
+
+    struct Car car;
+    while (fread(&car, sizeof(struct Car), 1, file)) {
+        addCar(showroom, createCar(car.reg_number, car.make_model, car.color, car.num_owners, car.reserved, car.reserve_amount));
+    }
+
+    fclose(file);
+    printf("System has been populated with cars from the data file.\n");
+}
+
+void writeToFile(struct Car* showroom) {
+    FILE *file = fopen("car.dat", "wb");
+    if (file == NULL) {
+        printf("Error writing to file.\n");
+        return;
+    }
+
+    struct Car* car = showroom;
+    while (car != NULL) {
+        fwrite(car, sizeof(struct Car), 1, file);
+        car = car->next;
+    }
+
+    fclose(file);
+    printf("All cars have been copied back to the database.\n");
+}
+
+int main() {
+    struct Car* showroom = NULL;
+    // Sample data - Adding cars to the showroom
+    addCar(&showroom, createCar("15D21234", "Ford Fiesta", "Red", 1, 0, 0));
+    addCar(&showroom, createCar("16D11234", "Toyota Corolla", "Blue", 2, 1, 1000));
+    addCar(&showroom, createCar("17D31234", "Honda Civic", "Black", 0, 0, 0));
+    addCar(&showroom, createCar("18D41234", "BMW X5", "White", 3, 1, 1200));
+
+    readFromFile(&showroom);
+
+    while (1) {
+        printf("\nProgram Menu:\n");
+        printf("1. Add a new car to the showroom\n");
+        printf("2. Sell a car from the showroom\n");
+        printf("3. Reserve/Unreserve a car in the showroom\n");
+        printf("4. View all cars in the showroom\n");
+        printf("5. View a specific car in the showroom\n");
+        printf("6. This should be an appropriate option that you provide\n");
+        printf("7. Exit the system\n");
+
+        printf("Enter your choice: ");
+        int choice;
+        char reg[MAX_REG_LENGTH], make_model[MAX_MAKE_MODEL_LENGTH], color[MAX_COLOR_LENGTH];
+        scanf("%d", &choice);
+
+        if (choice == 1) {
+            int owners;
+            printf("Enter registration number: ");
+            scanf("%s", reg);
+            printf("Enter make and model: ");
+            scanf(" %[^\n]", make_model);
+            printf("Enter color: ");
+            scanf("%s", clr);
+            printf("Enter number of owners: ");
+            scanf("%d", &owners);
+            struct Car* car = createCar(reg, make_model, color, owners, 0, 0);
+            addCar(&showroom, car);
+        } else if (choice == 2) {
+            char reg[MAX_REG_LENGTH];
+            printf("Enter registration number of the car to sell: ");
+            scanf("%s", reg);
+            sellCar(&showroom, reg);
+        } else if (choice == 3) {
+            char reg[MAX_REG_LENGTH];
+            float reserve_amount;
+            printf("Enter registration number of the car to reserve/unreserve: ");
+            scanf("%s", reg);
+            printf("Enter reserve amount (0 to unreserve): ");
+            scanf("%f", &reserve_amount);
+            reserveUnreserveCar(showroom, reg, reserve_amount);
+        } else if (choice == 4) {
+            viewAllCars(showroom);
+        } else if (choice == 5) {
+            char reg[MAX_REG_LENGTH];
+            printf("Enter registration number of the car to view: ");
+            scanf("%s", reg);
+            viewSpecificCar(showroom, reg);
+        } else if (choice == 6) {
+            // Additional feature implementation goes here
+        } else if (choice == 7) {
+            printf("Exiting the system...\n");
+            break;
+        } else {
+            printf("Invalid choice. Please enter a number between 1 and 7.\n");
+        }
+    }
+
+    // Free allocated memory
+    struct Car* current = showroom;
+    struct Car* next;
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+
+    return 0;
+}
